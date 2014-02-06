@@ -117,6 +117,7 @@ case "$1" in
     ;;
 
   graphite:link)
+    APP="$2"
     if $APP_EXISTS; then
         #ID=$(docker ps -a | grep "$CONTAINER_NAME" |  awk '{print $1}')
         #IP=$(docker inspect $ID | grep IPAddress | awk '{ print $2 }' | tr -d ',"')
