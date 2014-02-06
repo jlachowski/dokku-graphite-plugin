@@ -112,7 +112,7 @@ case "$1" in
     echo "       Host: $IP"
     echo "       Gateway: $DOCKER_GATEWAY"
     echo "       Web port: $WEB_PORT -> $PORT_WEB"
-    echo "       Statsd port: $STATSD_PORT -> $PORT_STATS"
+    echo "       Statsd port: $STATSD_PORT -> $PORT_STATSD"
     echo
     ;;
 
