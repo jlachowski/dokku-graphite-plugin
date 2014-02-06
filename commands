@@ -1,0 +1,155 @@
+#!/bin/bash
+set -e; 
+
+# Check if name is specified
+if [[ $1 == graphite:* ]]; then
+    if [ -z $2 ]; then
+        APP="$2"
+        # Check if app exists with the same name
+        if [[ -d "$DOKKU_ROOT/$APP" ]]; then
+            APP_EXISTS=true
+        else
+            APP_EXISTS=false
+        fi
+    fi
+    if [[ ! -d "$PLUGIN_PATH/link" ]]; then
+        echo "Link plugin not found... Did you install it from https://github.com/rlaneve/dokku-link?"
+        exit 1
+    fi
+    PLUGIN_NAME="graphite"
+    PLUGIN_ALIAS="statsd"
+    CONTAINER_NAME="graphite_statsd"
+    HOST_DIR="$DOKKU_ROOT/.$PLUGIN_NAME/storage"
+    CONTAINER_IMAGE="jlachowski/graphite"
+    WEB_PORT=5000
+    STATSD_PORT=8125
+fi
+
+case "$1" in
+
+  graphite:create)
+    # Check if Graphite image is installed
+    IMAGE=$(docker images | grep "$CONTAINER_IMAGE" |  awk '{print $3}')
+    if [[ -z $IMAGE ]]; then
+        echo "Graphite image not found... Did you run 'dokku plugins-install' ?"
+        exit 1
+    fi
+    # check for existing container with the same persistent Graphite
+    ID=$(docker ps -a | grep "$CONTAINER_NAME" |  awk '{print $1}')
+    if [[ ! -z "$ID" ]]; then
+        echo
+        echo "-----> Container $CONTAINER_NAME already exist. Please use rebuild or delete command"
+        exit 1
+    fi
+    if [[ ! -d "$HOST_DIR" ]]; then
+        mkdir -p "$HOST_DIR"
+    fi
+    # Check if an existing storage volume exists
+    if [[ -d "$HOST_DIR/storage" ]]; then
+        echo
+        echo "-----> Reusing $PLUGIN_NAME storage"
+    else
+        mkdir -p "$HOST_DIR/storage"
+    fi
+    VOLUME="$HOST_DIR/storage:/opt/graphite/persistent-storage"
+    # Launch container
+    ID=$(docker run -v $VOLUME -p $WEB_PORT -p $STATSD_PORT -name=$CONTAINER_NAME -d $CONTAINER_IMAGE)
+    sleep 1
+    # Link to a potential existing app 
+    if [[ ! -z "$APP" ]]; then
+        dokku graphite:link $CONTAINER_NAME $APP
+    fi
+    echo
+    echo "-----> Graphite container $CONTAINER_NAME created (using $CONTAINER_IMAGE)"
+    sleep 1
+    dokku graphite:info $CONTAINER_NAME
+    ;;
+  
+  graphite:rebuild)
+    ID=$(docker ps -a | grep "$CONTAINER_NAME" |  awk '{print $1}')
+    if [[ ! -z "$ID" ]]; then
+        echo
+        echo "-----> Stopping & removing $CONTAINER_NAME container"
+        docker stop $ID > /dev/null
+        docker rm $ID > /dev/null
+    fi
+    #TODO: create graphite without an app
+    dokku graphite:create
+    ;;
+
+  graphite:delete)
+    echo
+    echo "-----> This will permanently remove all the stored data. Are you sure (yes/no)?"
+    read ANSWER
+    if [[ $ANSWER == "yes" ]]; then
+        # Stop the container
+        ID=$(docker ps -a | grep "$CONTAINER_NAME" |  awk '{print $1}')
+        if [[ ! -z $ID ]]; then
+            docker stop $ID > /dev/null
+            docker rm $ID > /dev/null
+        fi
+
+        dokku link:delete "$APP" "$CONTAINER_NAME" "$PLUGIN_ALIAS"
+
+        # Remove persistent volume
+        if [[ -d "$HOST_DIR" ]]; then
+            rm -rf "$HOST_DIR"
+            echo
+            echo "-----> Deleted persistent storage for $CONTAINER_NAME"
+        fi
+        echo
+        echo "-----> Deleted Graphite container $CONTAINER_NAME"
+    fi
+    ;;
+
+  graphite:info)
+    ID=$(docker ps -a | grep "$CONTAINER_NAME" |  awk '{print $1}')
+    IP=$(docker inspect $ID | grep IPAddress | awk '{ print $2 }' | tr -d ',"')
+    DOCKER_GATEWAY=$(docker inspect $ID | grep Gateway | awk '{ print $2 }' | tr -d ',"')
+    PORT_WEB=$(docker port $ID $WEB_PORT | sed 's/0.0.0.0://')
+    PORT_STATSD=$(docker port $ID $STATSD_PORT | sed 's/0.0.0.0://')
+    echo
+    echo "       Host: $IP"
+    echo "       Gateway: $DOCKER_GATEWAY"
+    echo "       Web port: $WEB_PORT -> $PORT_WEB"
+    echo "       Statsd port: $STATSD_PORT -> $PORT_STATS"
+    echo
+    ;;
+
+  graphite:link)
+    if $APP_EXISTS; then
+        #ID=$(docker ps -a | grep "$CONTAINER_NAME" |  awk '{print $1}')
+        #IP=$(docker inspect $ID | grep IPAddress | awk '{ print $2 }' | tr -d ',"')
+        dokku link:create "$APP" "$CONTAINER_NAME" "$PLUGIN_ALIAS"
+        echo "$APP" >> "$HOST_DIR/linked_apps"
+        echo
+        echo "-----> $APP linked to $CONTAINER_NAME container"
+    fi
+    ;;
+
+  graphite:logs)
+    ID=$(docker ps -a | grep "$CONTAINER_NAME" |  awk '{print $1}')
+    docker logs $ID | tail -n 100
+    ;;
+
+  graphite:list)
+    CONTAINERS=$(cat "$HOST_DIR/linked_apps" | awk '{print $1}')
+    echo "STATSD linked apps:"
+    for CONTAINER in $CONTAINERS; do
+        echo "  - $CONTAINER"
+    done
+    ;;
+
+  help)
+    cat && cat<<EOF
+    graphite:create [<app>]                         Create a Graphite/Statsd container [and link the <app>]
+    graphite:rebuild                                Rebuild Graphite/Statsd container (keep persistend data)
+    graphite:delete                                 Delete Graphite/Statsd container
+    graphite:info                                   Display Graphite/Statsd container informations
+    graphite:link <app>                             Link an <app> to the Graphite/Statsd container
+    graphite:list                                   Display list of Graphite/Statsd linked apps
+    graphite:logs                                   Display last logs from Graphite/Statsd container
+EOF
+    ;;
+
+esac
