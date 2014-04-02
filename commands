@@ -53,7 +53,7 @@ case "$1" in
     fi
     VOLUME="$HOST_DIR/storage:/opt/graphite/persistent-storage"
     # Launch container
-    ID=$(docker run -v $VOLUME -p $WEB_PORT -p $STATSD_PORT --name $CONTAINER_NAME -d $CONTAINER_IMAGE)
+    ID=$(docker run -v $VOLUME -p 127.0.0.1:$WEB_PORT -p 127.0.0.1:$STATSD_PORT --name $CONTAINER_NAME -d $CONTAINER_IMAGE)
     sleep 1
     # Link to a potential existing app 
     if [[ ! -z "$APP" ]]; then
