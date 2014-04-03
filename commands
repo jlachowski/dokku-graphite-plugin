@@ -60,7 +60,7 @@ case "$1" in
     fi
     # Check if statsd port already allocated
     if [[ -f "$HOST_DIR/PORT_GRAPHITE" ]]; then
-        echo "-----> Reusing $PLUGIN_NAME graphite port"
+        echo "-----> Reusing $PLUGIN_NAME carbon port"
         PORT_GRAPHITE=$(cat "$HOST_DIR/PORT_GRAPHITE")
     else
         PORT_GRAPHITE=""
@@ -131,7 +131,7 @@ case "$1" in
     echo "       Host: $IP"
     echo "       Gateway: $DOCKER_GATEWAY"
     echo "       Web port: $WEB_PORT -> $PORT_WEB"
-    echo "       Graphite port: $GRAPHITE_PORT -> $PORT_GRAPHITE"
+    echo "       Carbon port: $GRAPHITE_PORT -> $PORT_GRAPHITE"
     echo
     ;;
 
