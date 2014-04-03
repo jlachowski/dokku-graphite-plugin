@@ -125,8 +125,8 @@ case "$1" in
     ID=$(docker ps -a | grep "$CONTAINER_NAME" |  awk '{print $1}')
     IP=$(docker inspect $ID | grep IPAddress | awk '{ print $2 }' | tr -d ',"')
     DOCKER_GATEWAY=$(docker inspect $ID | grep Gateway | awk '{ print $2 }' | tr -d ',"')
-    PORT_WEB=$(docker port $ID $WEB_PORT | sed 's/127.0.0.1://')
-    PORT_STATSD=$(docker port $ID $STATSD_PORT | sed 's/127.0.0.1://')
+    PORT_WEB=$(docker port $ID $WEB_PORT)
+    PORT_STATSD=$(docker port $ID $STATSD_PORT)
     echo
     echo "       Host: $IP"
     echo "       Gateway: $DOCKER_GATEWAY"
