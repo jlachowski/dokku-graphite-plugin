@@ -22,7 +22,7 @@ if [[ $1 == graphite:* ]]; then
     HOST_DIR="$DOKKU_ROOT/.$PLUGIN_NAME/storage"
     CONTAINER_IMAGE="jlachowski/graphite"
     WEB_PORT=5000
-    STATSD_PORT="8125/udp"
+    GRAPHITE_PORT=2003
 fi
 
 case "$1" in
@@ -59,11 +59,11 @@ case "$1" in
         PORT_WEB=""
     fi
     # Check if statsd port already allocated
-    if [[ -f "$HOST_DIR/PORT_STATSD" ]]; then
-        echo "-----> Reusing $PLUGIN_NAME statsd port"
-        PORT_STATSD=$(cat "$HOST_DIR/PORT_STATSD")
+    if [[ -f "$HOST_DIR/PORT_GRAPHITE" ]]; then
+        echo "-----> Reusing $PLUGIN_NAME graphite port"
+        PORT_GRAPHITE=$(cat "$HOST_DIR/PORT_GRAPHITE")
     else
-        PORT_STATSD=""
+        PORT_GRAPHITE=""
     fi
     VOLUME="$HOST_DIR/storage:/opt/graphite/persistent-storage"
     # Launch container
@@ -71,9 +71,9 @@ case "$1" in
     sleep 1
     # store exposed ports
     PORT_WEB=$(docker port $ID $WEB_PORT | sed 's/127.0.0.1://')
-    PORT_STATSD=$(docker port $ID $STATSD_PORT | sed 's/127.0.0.1://')
+    PORT_GRAPHITE=$(docker port $ID $GRAPHITE_PORT | sed 's/127.0.0.1://')
     echo $PORT_WEB > "$HOST_DIR/PORT_WEB"
-    echo $PORT_STATSD > "$HOST_DIR/PORT_STATSD"
+    echo $PORT_GRAPHITE > "$HOST_DIR/PORT_GRAPHITE"
     # Link to a potential existing app 
     if [[ ! -z "$APP" ]]; then
         dokku graphite:link $CONTAINER_NAME $APP
@@ -126,12 +126,12 @@ case "$1" in
     IP=$(docker inspect $ID | grep IPAddress | awk '{ print $2 }' | tr -d ',"')
     DOCKER_GATEWAY=$(docker inspect $ID | grep Gateway | awk '{ print $2 }' | tr -d ',"')
     PORT_WEB=$(docker port $ID $WEB_PORT)
-    PORT_STATSD=$(docker port $ID $STATSD_PORT)
+    PORT_GRAPHITE=$(docker port $ID $GRAPHITE_PORT)
     echo
     echo "       Host: $IP"
     echo "       Gateway: $DOCKER_GATEWAY"
     echo "       Web port: $WEB_PORT -> $PORT_WEB"
-    echo "       Statsd port: $STATSD_PORT -> $PORT_STATSD"
+    echo "       Statsd port: $GRAPHITE_PORT -> $PORT_GRAPHITE"
     echo
     ;;
 
