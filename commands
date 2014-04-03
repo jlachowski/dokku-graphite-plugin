@@ -67,7 +67,7 @@ case "$1" in
     fi
     VOLUME="$HOST_DIR/storage:/opt/graphite/persistent-storage"
     # Launch container
-    ID=$(docker run -v $VOLUME -p 127.0.0.1:$PORT_WEB:$WEB_PORT -p 127.0.0.1:$PORT_STATSD:$STATSD_PORT --name $CONTAINER_NAME -d $CONTAINER_IMAGE)
+    ID=$(docker run -v $VOLUME -p 127.0.0.1:$PORT_WEB:$WEB_PORT -p 127.0.0.1:$PORT_GRAPHITE:$GRAPHITE_PORT --name $CONTAINER_NAME -d $CONTAINER_IMAGE)
     sleep 1
     # store exposed ports
     PORT_WEB=$(docker port $ID $WEB_PORT | sed 's/127.0.0.1://')
