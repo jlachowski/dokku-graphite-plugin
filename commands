@@ -53,7 +53,6 @@ case "$1" in
     fi
     # Check if web port already allocated
     if [[ -d "$HOST_DIR/WEB_PORT" ]]; then
-        echo
         echo "-----> Reusing $PLUGIN_NAME web port"
         PORT_WEB=$(cat "$HOST_DIR/WEB_PORT")
     else
@@ -61,11 +60,10 @@ case "$1" in
     fi
     # Check if statsd port already allocated
     if [[ -d "$HOST_DIR/STATSD_PORT" ]]; then
-        echo
         echo "-----> Reusing $PLUGIN_NAME statsd port"
-        PORT_WEB=$(cat "$HOST_DIR/STATSD_PORT")
+        PORT_STATSD=$(cat "$HOST_DIR/STATSD_PORT")
     else
-        PORT_WEB=""
+        PORT_STATSD=""
     fi
     VOLUME="$HOST_DIR/storage:/opt/graphite/persistent-storage"
     # Launch container
